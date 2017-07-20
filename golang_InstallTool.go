@@ -7,22 +7,42 @@ import (
 	"os"
 	"strings"
 
+	"github.com/beevik/etree"
 	_ "github.com/mattn/go-adodb"
 )
 
-var toolTypeDoc string = `
-0:do noting
-1:TestMsSQLConnect return: 1 can not connect 
-2:TestMsSQLInstanceExists return: 2 Exists
+var usageMsg string = `InstallTool
+you can use this tool to Test MSSQL Connect/MSSQL DB is exists/Update XML file...
+
+[-type] is must input
+	0:Show Messages (default)
+	1:TestMsSQLConnect return: 0 connect sueecss; 1 Can not connect 
+	2:TestMsSQLInstanceExists return: 0 Instance is not Exists; 1 Instance is Exists
+	5:Update XML tag , must input: -file -xpath -tag
+	6:Update XML text , must input: -file -xpath -text
+	7:Update XML attr value , must input: -file -xpath -key -value
+
+[-h] you can use -h command to see helper
 `
-var inputToolType = flag.Int("type", 0, toolTypeDoc)
+var inputToolType = flag.Int("type", 0, "Tool Type")
 var inputMSSQLHost = flag.String("mshost", "127.0.0.1", "MS SQL Host")
 var inputMSSQLPort = flag.String("mspost", "1433", "MS SQL Port")
 var inputMSSQLUsr = flag.String("msusr", "sa", "MS SQL User")
 var inputMSSQLpwd = flag.String("mspwd", "", "MS SQL Password")
 var inputMSSQLDBName = flag.String("msdbname", "", "MS SQL dbName")
+var inputXMLFile = flag.String("file", "", "XML file path")
+var inputXMLxpath = flag.String("xpath", "", "xpath")
+var inputXMLtag = flag.String("tag", "", "xml tag")
+var inputXMLkey = flag.String("key", "", "xml key")
+var inputXMLvalue = flag.String("value", "", "xml value")
+var inputXMLtext = flag.String("text", "", "xml text")
 
 func init_flag() {
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, usageMsg+"\n")
+		fmt.Fprintf(os.Stderr, "Usage of :\n\n")
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 }
 
@@ -56,7 +76,7 @@ func SpliceConnectString(db MSSQL) []string {
 	return conf
 }
 
-func TestMsSQLConnect() (err error) {
+func TestMsSQLConnect() {
 	db := MSSQL{
 		dataSource: *inputMSSQLHost,
 		database:   "",
@@ -67,18 +87,17 @@ func TestMsSQLConnect() (err error) {
 		},
 	}
 	conf := SpliceConnectString(db)
+	var err error
 	db.DB, err = sql.Open("adodb", strings.Join(conf, ";"))
 	err = db.DB.Ping()
+	defer db.Close()
 	if err != nil {
 		fmt.Println("sql open:", err)
 		os.Exit(1)
-		return err
 	}
-	defer db.Close()
-	return nil
 }
 
-func TestMsSQLInstance() (err error) {
+func TestMsSQLInstance() {
 	db := MSSQL{
 		dataSource: *inputMSSQLHost,
 		database:   *inputMSSQLDBName,
@@ -89,33 +108,71 @@ func TestMsSQLInstance() (err error) {
 		},
 	}
 	conf := SpliceConnectString(db)
+	var err error
 	db.DB, err = sql.Open("adodb", strings.Join(conf, ";"))
-	rows, err := db.DB.Query("")
-	if rows.Next() {
-
-	}
 	if err != nil {
 		fmt.Println("sql open:", err)
 		os.Exit(1)
-		return err
 	}
+	rows, err := db.DB.Query("select name from master.dbo.sysdatabases where name = '" + db.database + "'")
 	defer db.Close()
-	return nil
+	if err != nil {
+		// fmt.Println("sql query:", err)
+		os.Exit(0)
+	}
+	if rows.Next() {
+		os.Exit(1)
+	}
+}
+
+func UpdateXMLConfigTag() {
+	doc := etree.NewDocument()
+	if err := doc.ReadFromFile(*inputXMLFile); err != nil {
+		panic(err)
+	}
+	root := doc.FindElement(*inputXMLxpath)
+	root.Tag = *inputXMLtag
+	doc.WriteToFile(*inputXMLFile)
+}
+
+func UpdateXMLConfigText() {
+	doc := etree.NewDocument()
+	if err := doc.ReadFromFile(*inputXMLFile); err != nil {
+		panic(err)
+	}
+	root := doc.FindElement(*inputXMLxpath)
+	root.SetText(*inputXMLtext)
+	doc.WriteToFile(*inputXMLFile)
+}
+
+func UpdateXMLConfigAttr() {
+	doc := etree.NewDocument()
+	if err := doc.ReadFromFile(*inputXMLFile); err != nil {
+		panic(err)
+	}
+	root := doc.FindElement(*inputXMLxpath)
+	root.SelectAttr(*inputXMLkey).Value = *inputXMLvalue
+	doc.WriteToFile(*inputXMLFile)
 }
 
 func main() {
-
+	// UpdateXMLConfig()
 	init_flag()
 	switch *inputToolType {
 	case 0:
-		fmt.Println("help message")
+		fmt.Println(usageMsg)
 	case 1:
 		TestMsSQLConnect()
 	case 2:
 		TestMsSQLInstance()
+	case 5:
+		UpdateXMLConfigTag()
+	case 6:
+		UpdateXMLConfigText()
+	case 7:
+		UpdateXMLConfigAttr()
 	default:
-		fmt.Println("222222222")
+		fmt.Println(usageMsg)
 	}
 	os.Exit(0)
-
 }

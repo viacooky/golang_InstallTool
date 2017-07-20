@@ -1,0 +1,110 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+  <configSections>
+    <section name="unity" type="Microsoft.Practices.Unity.Configuration.UnityConfigurationSection, Microsoft.Practices.Unity.Configuration"/>
+  </configSections>
+  <unity>
+    <assembly name="Lonntec.Sue.Contract"/>
+    <assembly name="Lonntec.Sue.Implement"/>
+    <assembly name="Lonntec.Sue.Model"/>
+    <assembly name="Lonntec.Core"/>
+    <namespace name="Lonntec.Sue"/>
+    <namespace name="Lonntec.Sue.Model"/>
+    <namespace name="Lonntec.Data"/>
+    <namespace name="Lonntec.Authentication"/>
+    <namespace name="Lonntec.Communication"/>
+
+    <container>
+      <xxx type="斯大林空间" mapTo="斯大林空间sdaf">aaaaaaa<lifetime type="singleton"/>
+      </xxx>
+
+      <register type="SqlTableDescriptorFacotry">
+        <lifetime type="singleton"/>
+        <constructor>
+          <param name="dbType" value="MsSQL"/>
+        </constructor>
+      </register>
+
+      <!--<register type="IDbFactory" mapTo="MysqlDbFactory">
+        <lifetime type="singleton"/>
+      </register>
+
+      <register type="SqlTableDescriptorFacotry">
+        <lifetime type="singleton"/>
+        <constructor>
+          <param name="dbType" value="MySQL"/>
+        </constructor>
+      </register>-->
+
+      <register type="IDbAccess" mapTo="DbAccess">
+        <lifetime type="singleton"/>
+        <constructor>
+          <param name="dbFactory" dependencyType="IDbFactory"/>
+        </constructor>
+      </register>
+
+      <register type="SueDbContext">
+        <constructor>
+          <param name="nameOrConnectionString">
+            <value value="SueDB"/>
+          </param>
+        </constructor>
+      </register>
+
+      <register type="DbInitialization">
+        <lifetime type="singleton"/>
+        <constructor>
+          <param name="db" dependencyType="SueDbContext"/>
+        </constructor>
+      </register>
+    
+      <register type="IUserService" mapTo="UserService">
+        <lifetime type="singleton"/>
+      </register>
+
+      <register type="IForwardServiceManager" mapTo="ForwardServiceManager">
+        <lifetime type="singleton"/>
+      </register>
+
+      <register type="ISessionManager" mapTo="SessionManager">
+        <lifetime type="singleton"/>
+      </register>
+
+      <register type="IChepDataService" mapTo="ChepDataService">
+        <lifetime type="singleton"/>
+      </register>
+
+      <register type="ISueDataService" mapTo="SueDataService">
+        <lifetime type="singleton"/>
+      </register>
+      
+      <register type="ILangService" mapTo="LangService">
+        <lifetime type="singleton"/>
+      </register>
+
+      <register type="IFileService" mapTo="FileService">
+        <lifetime type="singleton"/>
+      </register>
+        
+      
+      <!--上下文生成器-->
+      <register type="IContextFactory" mapTo="ContextFactory">
+        <lifetime type="singleton"/>
+      </register>
+
+      <register type="RedisWrapper">
+        <lifetime type="singleton"/>
+        <constructor>
+          <param name="redisConnectionString">
+            <!--<value value="127.0.0.1:27102"/>-->
+            <value value="123"/>
+          </param>
+          <param name="dbIndex">
+            <value value="6"/>
+          </param>
+        </constructor>
+      </register>
+     
+    </container>
+  </unity>
+</configuration>
